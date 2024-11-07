@@ -1,3 +1,28 @@
 ngx_addon_name=ngx_http_blacklist_lookup_module
+
+# Указываем, что это HTTP-модуль
 HTTP_MODULES="$HTTP_MODULES ngx_http_blacklist_lookup_module"
+
+# Указываем исходный файл модуля
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_blacklist_lookup_module.c"
+
+# Указываем, что это динамический модуль
+NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_addon_dir/ngx_http_blacklist_lookup_module.c"
+
+# Указываем, что это динамический модуль
+if test -n "$ngx_module_link"; then
+    ngx_module_type=HTTP
+    ngx_module_name=$ngx_addon_name
+    ngx_module_srcs="$NGX_ADDON_SRCS"
+    ngx_module_incs=
+    ngx_module_libs=
+    ngx_module_deps=$NGX_ADDON_DEPS
+    ngx_module_path=
+    ngx_module_order=
+    ngx_module_link=$ngx_module_link
+
+    . auto/module
+else
+    HTTP_MODULES="$HTTP_MODULES $ngx_addon_name"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_blacklist_lookup_module.c"
+fi
