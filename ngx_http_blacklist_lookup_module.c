@@ -392,7 +392,7 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
 
     switch (r->connection->sockaddr->sa_family) {
         case AF_INET:
-            inet_ntop(AF_INET, &(((struct sockaddr_in *) (r->connection->sockaddr))->sin_addr.s_addr), ip_as_char.data, ip_as_char.len);
+            inet_ntop(AF_INET, &(((struct sockaddr_in *) (r->connection->sockaddr))->sin_addr.s_addr), (char *)ip_as_char.data, ip_as_char.len);
             break;
         case AF_INET6:
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "IPv6 is not supported in blacklist_lookup");
