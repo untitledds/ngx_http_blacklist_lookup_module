@@ -137,19 +137,31 @@ static int explode(ngx_str_t ***arr_ptr, ngx_str_t *str, u_char delimiter)
 }
 
 static int reverseIpv4(ngx_str_t *ip, ngx_str_t *reversedIp) {
-    ngx_str_t **arr, *str = ip;
+    ngx_str_t **arr;
     int size, i;
 
-    size = explode(&arr, str, '.');
+    // Split the string by the '.' character
+    size = explode(&arr, ip, '.');
 
+    // Clear reversedIp to avoid garbage in the result
+    reversedIp->len = 0;
+
+    // Form the reversed IP address
     for (i = size-1; i >= 0; i--) {
-        ngx_strncmp(reversedIp, arr[i], arr[i]->len);
+        // Copy the IP address part into reversedIp
+        ngx_memcpy(reversedIp->data + reversedIp->len, arr[i]->data, arr[i]->len);
+        reversedIp->len += arr[i]->len;
+
+        // If it's not the last part, add a dot
         if (i != 0) {
-            ngx_strncmp(reversedIp, ".", 1);
+            reversedIp->data[reversedIp->len] = '.';
+            reversedIp->len += 1;
         }
     }
 
+    // Free the memory allocated for arr
     ngx_pfree(ngx_cycle->pool, arr);
+
     return 0;
 }
 
