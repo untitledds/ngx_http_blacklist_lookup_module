@@ -166,7 +166,7 @@ static int reverseIpv4(ngx_str_t *ip, ngx_str_t *reversedIp) {
     return 0;
 }
 
-static int lookupAddr(ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
+static int lookupAddr(ngx_http_request_t *r, ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
     in_addr_t addr;
     struct in_addr inaddr;
     size_t buffer_size = NGX_INET_ADDRSTRLEN;
@@ -174,7 +174,7 @@ static int lookupAddr(ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
     // Преобразуем строку IP-адреса в in_addr_t
     addr = ngx_inet_addr(ip_as_string->data, ip_as_string->len);
     if (addr == INADDR_NONE) {
-        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Invalid IP address: %V", ip_as_string);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Invalid IP address: %V", ip_as_string);
         return 0;
     }
 
@@ -182,7 +182,7 @@ static int lookupAddr(ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
     inaddr.s_addr = addr;
     size_t result_len = ngx_inet_ntop(AF_INET, &inaddr, ipstr->data, buffer_size);
     if (result_len == (size_t)NGX_ERROR) {
-        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Failed to convert IP address to string: %V", ip_as_string);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to convert IP address to string: %V", ip_as_string);
         return 0;
     }
 
@@ -196,14 +196,14 @@ static int uceprotect_net(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *rever
     const char* blocklistHost = "dnsbl-1.uceprotect.net";
 
     ngx_str_t fullHostname;
-    fullHostname.data = ngx_palloc(r->pool, 256);
-    fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
+    fullHostname.data = ngx_pcalloc(r->pool, 256);
+    fullHostname.len = ngx_vsnprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
-    resolvedResultIp.data = ngx_palloc(r->pool, INET6_ADDRSTRLEN);
+    resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
     resolvedResultIp.len = INET6_ADDRSTRLEN;
 
-    int resolvedResult = lookupAddr(&fullHostname, &resolvedResultIp);
+    int resolvedResult = lookupAddr(r, &fullHostname, &resolvedResultIp);
 
     if (resolvedResult > 0) {
         if (ngx_http_blacklist_lookup_verbose) {
@@ -219,14 +219,14 @@ static int blocklist_de(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *reverse
     const char* blocklistHost = "bl.blocklist.de";
 
     ngx_str_t fullHostname;
-    fullHostname.data = ngx_palloc(r->pool, 256);
-    fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
+    fullHostname.data = ngx_pcalloc(r->pool, 256);
+    fullHostname.len = ngx_vsnprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
-    resolvedResultIp.data = ngx_palloc(r->pool, INET6_ADDRSTRLEN);
+    resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
     resolvedResultIp.len = INET6_ADDRSTRLEN;
 
-    int resolvedResult = lookupAddr(&fullHostname, &resolvedResultIp);
+    int resolvedResult = lookupAddr(r, &fullHostname, &resolvedResultIp);
 
     if (resolvedResult > 0) {
         if (ngx_http_blacklist_lookup_verbose) {
@@ -247,14 +247,14 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
     const char* blocklistHost = "dnsbl.httpbl.org";
 
     ngx_str_t fullHostname;
-    fullHostname.data = ngx_palloc(r->pool, 256);
-    fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%V.%s", honeyPotAccessKey, reversedIp, blocklistHost);
+    fullHostname.data = ngx_pcalloc(r->pool, 256);
+    fullHostname.len = ngx_vsnprintf(fullHostname.data, 256, "%V.%V.%s", honeyPotAccessKey, reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
-    resolvedResultIp.data = ngx_palloc(r->pool, INET6_ADDRSTRLEN);
+    resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
     resolvedResultIp.len = INET6_ADDRSTRLEN;
 
-    int resolvedResult = lookupAddr(&fullHostname, &resolvedResultIp);
+    int resolvedResult = lookupAddr(r, &fullHostname, &resolvedResultIp);
 
     if (resolvedResult > 0) {
         ngx_str_t **arr;
