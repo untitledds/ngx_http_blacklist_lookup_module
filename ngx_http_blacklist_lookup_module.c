@@ -352,6 +352,7 @@ static ngx_http_blacklist_lookup_value_node_t *ngx_http_blacklist_lookup_delete_
 }
 
 static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Starting ngx_http_blacklist_lookup_handler");
     ngx_http_blacklist_lookup_loc_conf_t *alcf;
     ngx_slab_pool_t *shpool;
     ngx_http_blacklist_lookup_value_node_t *found, *new_node;
@@ -598,7 +599,6 @@ static ngx_int_t ngx_http_blacklist_lookup_init(ngx_conf_t *cf) {
     }
     ngx_http_blacklist_lookup_shm_zone->init = ngx_http_blacklist_lookup_init_shm_zone;
 
-    // Добавляем сообщение в лог при загрузке модуля
     ngx_log_error(NGX_LOG_NOTICE, cf->log, 0, "ngx_http_blacklist_lookup_module loaded successfully");
 
     return NGX_OK;
