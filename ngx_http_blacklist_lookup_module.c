@@ -169,6 +169,7 @@ static int reverseIpv4(ngx_str_t *ip, ngx_str_t *reversedIp) {
 static int lookupAddr(ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
     in_addr_t addr;
     struct in_addr inaddr;
+    size_t buffer_size = NGX_INET_ADDRSTRLEN;
 
     // Преобразуем строку IP-адреса в in_addr_t
     addr = ngx_inet_addr(ip_as_string->data, ip_as_string->len);
@@ -181,7 +182,7 @@ static int lookupAddr(ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
 
     // Преобразуем in_addr_t в строку
     inaddr.s_addr = addr;
-    if (ngx_inet_ntop(AF_INET, &inaddr, ipstr->data, NGX_INET_ADDRSTRLEN) == NGX_ERROR) {
+    if (ngx_inet_ntop(AF_INET, &inaddr, ipstr->data, buffer_size) == NULL) {
         if (ngx_http_blacklist_lookup_verbose) {
             ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Failed to convert IP address to string: %V", ip_as_string);
         }
