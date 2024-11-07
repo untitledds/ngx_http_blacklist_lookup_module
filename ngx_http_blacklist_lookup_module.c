@@ -197,6 +197,9 @@ static int uceprotect_net(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *rever
 
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
+    if (fullHostname.data == NULL) {
+        return 0; // или другое действие в случае ошибки
+    }
 
     va_list args;
     va_start(args, blocklistHost);
@@ -205,6 +208,9 @@ static int uceprotect_net(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *rever
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
+    if (resolvedResultIp.data == NULL) {
+        return 0; // или другое действие в случае ошибки
+    }
     resolvedResultIp.len = INET6_ADDRSTRLEN;
 
     int resolvedResult = lookupAddr(r, &fullHostname, &resolvedResultIp);
@@ -224,6 +230,9 @@ static int blocklist_de(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *reverse
 
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
+    if (fullHostname.data == NULL) {
+        return 0; // или другое действие в случае ошибки
+    }
 
     va_list args;
     va_start(args, blocklistHost);
@@ -232,6 +241,9 @@ static int blocklist_de(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *reverse
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
+    if (resolvedResultIp.data == NULL) {
+        return 0; // или другое действие в случае ошибки
+    }
     resolvedResultIp.len = INET6_ADDRSTRLEN;
 
     int resolvedResult = lookupAddr(r, &fullHostname, &resolvedResultIp);
@@ -256,6 +268,9 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
 
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
+    if (fullHostname.data == NULL) {
+        return 0; // или другое действие в случае ошибки
+    }
 
     va_list args;
     va_start(args, blocklistHost);
@@ -264,6 +279,9 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
+    if (resolvedResultIp.data == NULL) {
+        return 0; // или другое действие в случае ошибки
+    }
     resolvedResultIp.len = INET6_ADDRSTRLEN;
 
     int resolvedResult = lookupAddr(r, &fullHostname, &resolvedResultIp);
@@ -272,7 +290,7 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
         ngx_str_t **arr;
         int size;
         size = explode(&arr, &resolvedResultIp, '.');
-        if (ngx_atoi(arr[3]->data, arr[3]->len) >= 3) {
+        if (size > 3 && ngx_atoi(arr[3]->data, arr[3]->len) >= 3) {
             if (ngx_http_blacklist_lookup_verbose) {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "IP %V requested as %V resolved in black list as %V", ip, &fullHostname, &resolvedResultIp);
             }
