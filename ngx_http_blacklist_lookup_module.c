@@ -32,6 +32,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include <ngx_inet.h>
 
 typedef struct {
     ngx_flag_t      enable;
@@ -166,38 +167,27 @@ static int reverseIpv4(ngx_str_t *ip, ngx_str_t *reversedIp) {
 }
 
 static int lookupAddr(ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
-    int status;
-    struct addrinfo hints;
-    struct addrinfo *servinfo, *p;
+    in_addr_t addr;
+    struct in_addr inaddr;
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((status = getaddrinfo(ip_as_string->data, NULL, &hints, &servinfo)) != 0) {
+    // Преобразуем строку IP-адреса в in_addr_t
+    addr = ngx_inet_addr(ip_as_string->data, ip_as_string->len);
+    if (addr == INADDR_NONE) {
         if (ngx_http_blacklist_lookup_verbose) {
-            ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "getaddrinfo: %V %s", ip_as_string, gai_strerror(status));
+            ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Invalid IP address: %V", ip_as_string);
         }
         return 0;
     }
 
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        void *addr;
-        char *ipver;
-
-        if (p->ai_family == AF_INET) {
-            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-            addr = &(ipv4->sin_addr);
-            ipver = "IPv4";
-            ngx_snprintf(ipstr->data, ipstr->len + 5, "%s", inet_ntoa(ipv4->sin_addr));
-        } else {
-            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
-            addr = &(ipv6->sin6_addr);
-            ipver = "IPv6";
+    // Преобразуем in_addr_t в строку
+    inaddr.s_addr = addr;
+    if (ngx_inet_ntop(AF_INET, &inaddr, ipstr->data, ipstr->len) == NULL) {
+        if (ngx_http_blacklist_lookup_verbose) {
+            ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Failed to convert IP address to string: %V", ip_as_string);
         }
+        return 0;
     }
 
-    freeaddrinfo(servinfo);
     return 1;
 }
 
