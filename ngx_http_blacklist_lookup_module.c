@@ -112,7 +112,7 @@ static int explode(ngx_str_t **arr_ptr, ngx_str_t *str, u_char delimiter) {
         if ((end = ngx_strchr(src, delimiter)) == NULL)
             end = src + src->len;
         arr[i] = dst;
-        ngx_strncpy(dst, src, end - src);
+        ngx_strncmp(dst, src, end - src);
         dst->len = end - src;
         dst += end - src + 1;
         src = end + 1;
