@@ -202,7 +202,8 @@ static int uceprotect_net(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *rever
     }
 
     // Исправленная строка
-    fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
+    u_char* temp = ngx_snprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
+    fullHostname.len = temp - fullHostname.data;
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
