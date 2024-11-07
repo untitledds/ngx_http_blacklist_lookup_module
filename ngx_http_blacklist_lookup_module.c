@@ -1,34 +1,3 @@
-/**
-* @file ngx_http_blacklist_lookup_module.c
-* @author Oleg Neumyvakin <oneumyvakin@gmail.com>
-* @date Sun Mar 24 16:46:01 2013
-*
-* @brief Simple HTTP DNS blacklist module for Nginx.
-*
-* @section LICENSE
-*
-* Copyright (C) 2013 by Oleg Neumyvakin <oneumyvakin@gmail.com>
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*
-* @section TODO
-* - replace internal resolver with ngx_resolver		- DONE
-* - make uceprotect.net and blocklist.de optional	- DONE
-*/
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
@@ -110,6 +79,7 @@ static int explode(ngx_str_t ***arr_ptr, ngx_str_t *str, u_char delimiter)
     // Allocate memory for the array of ngx_str_t pointers and the concatenated strings
     arr = ngx_alloc(size * sizeof(ngx_str_t *) + (str->len + 1) * sizeof(u_char), ngx_cycle->log);
     if (arr == NULL) {
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Memory allocation failed in explode");
         return -1; // Memory allocation failed
     }
 
@@ -143,6 +113,10 @@ static int reverseIpv4(ngx_str_t *ip, ngx_str_t *reversedIp) {
 
     // Split the string by the '.' character
     size = explode(&arr, ip, '.');
+    if (size < 0) {
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Failed to explode IP address");
+        return -1;
+    }
 
     // Clear reversedIp to avoid garbage in the result
     reversedIp->len = 0;
@@ -198,6 +172,7 @@ static int uceprotect_net(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *rever
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
     if (fullHostname.data == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Memory allocation failed in uceprotect_net");
         return 0; // или другое действие в случае ошибки
     }
 
@@ -208,6 +183,7 @@ static int uceprotect_net(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *rever
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
     if (resolvedResultIp.data == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Memory allocation failed in uceprotect_net");
         return 0; // или другое действие в случае ошибки
     }
     resolvedResultIp.len = INET6_ADDRSTRLEN;
@@ -230,6 +206,7 @@ static int blocklist_de(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *reverse
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
     if (fullHostname.data == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Memory allocation failed in blocklist_de");
         return 0; // или другое действие в случае ошибки
     }
 
@@ -240,6 +217,7 @@ static int blocklist_de(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *reverse
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
     if (resolvedResultIp.data == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Memory allocation failed in blocklist_de");
         return 0; // или другое действие в случае ошибки
     }
     resolvedResultIp.len = INET6_ADDRSTRLEN;
@@ -267,6 +245,7 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
     if (fullHostname.data == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Memory allocation failed in projecthoneypot_org");
         return 0; // или другое действие в случае ошибки
     }
 
@@ -277,6 +256,7 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
     if (resolvedResultIp.data == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Memory allocation failed in projecthoneypot_org");
         return 0; // или другое действие в случае ошибки
     }
     resolvedResultIp.len = INET6_ADDRSTRLEN;
@@ -312,13 +292,13 @@ static ngx_int_t ngx_http_blacklist_lookup_init_shm_zone(ngx_shm_zone_t *shm_zon
 
     tree = ngx_slab_alloc(shpool, sizeof(ngx_rbtree_t));
     if (tree == NULL) {
-        ngx_slab_free(shpool, tree);
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Memory allocation failed in ngx_http_blacklist_lookup_init_shm_zone");
         return NGX_ERROR;
     }
 
     sentinel = ngx_slab_alloc(shpool, sizeof(ngx_rbtree_node_t));
     if (sentinel == NULL) {
-        ngx_slab_free(shpool, sentinel);
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Memory allocation failed in ngx_http_blacklist_lookup_init_shm_zone");
         return NGX_ERROR;
     }
 
@@ -390,6 +370,11 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     ip_as_char.data = ngx_palloc(r->pool, INET6_ADDRSTRLEN);
     ip_as_char.len = INET6_ADDRSTRLEN;
 
+    if (r->connection == NULL || r->connection->sockaddr == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Invalid connection or sockaddr");
+        return NGX_ERROR;
+    }
+
     switch (r->connection->sockaddr->sa_family) {
         case AF_INET:
             inet_ntop(AF_INET, &(((struct sockaddr_in *) (r->connection->sockaddr))->sin_addr.s_addr), (char *)ip_as_char.data, ip_as_char.len);
@@ -397,13 +382,25 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
         case AF_INET6:
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "IPv6 is not supported in blacklist_lookup");
             return NGX_OK;
+        default:
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Unsupported address family");
+            return NGX_ERROR;
     }
 
     ngx_str_t ip_as_string = r->connection->addr_text;
     hash = ngx_crc32_long(ip_as_string.data, ip_as_string.len);
 
     shpool = (ngx_slab_pool_t *) ngx_http_blacklist_lookup_shm_zone->shm.addr;
-    ngx_shmtx_lock(&shpool->mutex);
+    if (shpool == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Shared memory pool is not initialized");
+        return NGX_ERROR;
+    }
+
+    if (ngx_shmtx_lock(&shpool->mutex) != NGX_OK) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to lock shared memory mutex");
+        return NGX_ERROR;
+    }
+
     found = (ngx_http_blacklist_lookup_value_node_t *) ngx_str_rbtree_lookup(ngx_http_blacklist_lookup_rbtree, &ip_as_string, hash);
     ngx_shmtx_unlock(&shpool->mutex);
 
@@ -442,7 +439,10 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     ngx_str_t reversedIp;
     reversedIp.data = ngx_palloc(r->pool, INET6_ADDRSTRLEN);
     reversedIp.len = INET6_ADDRSTRLEN;
-    reverseIpv4(&ip_as_char, &reversedIp);
+    if (reverseIpv4(&ip_as_char, &reversedIp) != 0) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to reverse IP address");
+        return NGX_ERROR;
+    }
 
     int total = 0;
     if (alcf->uceprotect_net) {
@@ -459,6 +459,8 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     ngx_http_blacklist_lookup_delete_expired(shpool, ngx_http_blacklist_lookup_rbtree->root, ngx_http_blacklist_lookup_rbtree->sentinel);
     new_node = ngx_slab_alloc_locked(shpool, sizeof(ngx_http_blacklist_lookup_value_node_t));
     if (new_node == NULL) {
+        ngx_shmtx_unlock(&shpool->mutex);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Memory allocation failed in ngx_http_blacklist_lookup_handler");
         return NGX_ERROR;
     }
     new_node->sn.node.key = hash;
@@ -511,6 +513,7 @@ static void *ngx_http_blacklist_lookup_create_loc_conf(ngx_conf_t *cf) {
 
     conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_blacklist_lookup_loc_conf_t));
     if (conf == NULL) {
+        ngx_log_error(NGX_LOG_ERR, cf->log, 0, "Memory allocation failed in ngx_http_blacklist_lookup_create_loc_conf");
         return NGX_CONF_ERROR;
     }
     conf->enable = NGX_CONF_UNSET;
@@ -545,6 +548,7 @@ static ngx_int_t ngx_http_blacklist_lookup_init(ngx_conf_t *cf) {
 
     h = ngx_array_push(&cscf->phases[NGX_HTTP_ACCESS_PHASE].handlers);
     if (h == NULL) {
+        ngx_log_error(NGX_LOG_ERR, cf->log, 0, "Failed to push handler in ngx_http_blacklist_lookup_init");
         return NGX_ERROR;
     }
 
@@ -561,6 +565,7 @@ static ngx_int_t ngx_http_blacklist_lookup_init(ngx_conf_t *cf) {
 
     ngx_http_blacklist_lookup_shm_zone = ngx_shared_memory_add(cf, shm_name, ngx_http_blacklist_lookup_shm_size, &ngx_http_blacklist_lookup_module);
     if (ngx_http_blacklist_lookup_shm_zone == NULL) {
+        ngx_log_error(NGX_LOG_ERR, cf->log, 0, "Failed to add shared memory zone in ngx_http_blacklist_lookup_init");
         return NGX_ERROR;
     }
     ngx_http_blacklist_lookup_shm_zone->init = ngx_http_blacklist_lookup_init_shm_zone;
