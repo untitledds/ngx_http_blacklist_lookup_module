@@ -95,28 +95,43 @@ ngx_module_t ngx_http_blacklist_lookup_module = {
 };
 
 static int explode(ngx_str_t **arr_ptr, ngx_str_t *str, u_char delimiter) {
-    ngx_str_t *src = str, *end, *dst;
+    ngx_str_t *src = str, *dst;
     ngx_str_t **arr;
     int size = 1, i;
+    char *end;
 
-    while ((end = ngx_strchr(src, delimiter)) != NULL) {
+    // Count the number of delimiters to determine the size of the array
+    while ((end = ngx_strchr(src->data, delimiter)) != NULL) {
         ++size;
-        src = end + 1;
+        src->data = end + 1; // Update src to point to the next character after the delimiter
+        src->len = src->len - (end - src->data); // Update the length of src
     }
 
-    arr = ngx_palloc(ngx_cycle->pool, size * sizeof(ngx_str_t *) + (str->len + 1) * sizeof(u_char));
+    // Allocate memory for the array of ngx_str_t pointers
+    arr = ngx_palloc(ngx_cycle->pool, size * sizeof(ngx_str_t *));
+    if (arr == NULL) {
+        return -1; // Handle memory allocation failure
+    }
 
+    // Reset src to the beginning of the string
     src = str;
-    dst = (ngx_str_t *) arr + size * sizeof(ngx_str_t *);
+
+    // Fill the array with the split strings
     for (i = 0; i < size; ++i) {
-        if ((end = ngx_strchr(src, delimiter)) == NULL)
-            end = src + src->len;
-        arr[i] = dst;
-        ngx_strncmp(dst, src, end - src);
-        dst->len = end - src;
-        dst += end - src + 1;
-        src = end + 1;
+        if ((end = ngx_strchr(src->data, delimiter)) != NULL) {
+            arr[i] = ngx_palloc(ngx_cycle->pool, sizeof(ngx_str_t));
+            arr[i]->data = src->data;
+            arr[i]->len = end - src->data;
+            src->data = end + 1;
+            src->len = src->len - (end - src->data);
+        } else {
+            // Last segment
+            arr[i] = ngx_palloc(ngx_cycle->pool, sizeof(ngx_str_t));
+            arr[i]->data = src->data;
+            arr[i]->len = src->len;
+        }
     }
+
     *arr_ptr = arr;
 
     return size;
