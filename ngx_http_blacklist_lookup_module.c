@@ -143,9 +143,9 @@ static int reverseIpv4(ngx_str_t *ip, ngx_str_t *reversedIp) {
     size = explode(&arr, str, '.');
 
     for (i = size-1; i >= 0; i--) {
-        ngx_strncat(reversedIp, arr[i], arr[i]->len);
+        ngx_strncmp(reversedIp, arr[i], arr[i]->len);
         if (i != 0) {
-            ngx_strncat(reversedIp, ".", 1);
+            ngx_strncmp(reversedIp, ".", 1);
         }
     }
 
