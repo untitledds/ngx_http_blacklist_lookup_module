@@ -360,6 +360,7 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     alcf = ngx_http_get_module_loc_conf(r, ngx_http_blacklist_lookup_module);
 
     if (!alcf->enable) {
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Blacklist lookup is disabled");
         return NGX_OK;
     }
 
