@@ -396,11 +396,7 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
         return NGX_ERROR;
     }
 
-    if (ngx_shmtx_lock(&shpool->mutex) != NGX_OK) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to lock shared memory mutex");
-        return NGX_ERROR;
-    }
-
+    ngx_shmtx_lock(&shpool->mutex);
     found = (ngx_http_blacklist_lookup_value_node_t *) ngx_str_rbtree_lookup(ngx_http_blacklist_lookup_rbtree, &ip_as_string, hash);
     ngx_shmtx_unlock(&shpool->mutex);
 
@@ -446,13 +442,24 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
 
     int total = 0;
     if (alcf->uceprotect_net) {
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Checking uceprotect.net for IP %V", &ip_as_char);
         total += uceprotect_net(r, &ip_as_char, &reversedIp);
+    } else {
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Skipping uceprotect.net check for IP %V", &ip_as_char);
     }
+
     if (alcf->blocklist_de) {
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Checking blocklist.de for IP %V", &ip_as_char);
         total += blocklist_de(r, &ip_as_char, &reversedIp);
+    } else {
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Skipping blocklist.de check for IP %V", &ip_as_char);
     }
+
     if (alcf->projecthoneypot_org) {
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Checking projecthoneypot.org for IP %V", &ip_as_char);
         total += projecthoneypot_org(r, &ip_as_char, &reversedIp, &honeyPotAccessKey);
+    } else {
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Skipping projecthoneypot.org check for IP %V", &ip_as_char);
     }
 
     ngx_shmtx_lock(&shpool->mutex);
