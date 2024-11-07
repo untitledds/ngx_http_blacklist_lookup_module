@@ -197,7 +197,7 @@ static int uceprotect_net(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *rever
 
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
-    fullHostname.len = ngx_vsnprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
+    fullHostname.len = ngx_vslprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
@@ -220,7 +220,7 @@ static int blocklist_de(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *reverse
 
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
-    fullHostname.len = ngx_vsnprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
+    fullHostname.len = ngx_vslprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
@@ -248,7 +248,7 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
 
     ngx_str_t fullHostname;
     fullHostname.data = ngx_pcalloc(r->pool, 256);
-    fullHostname.len = ngx_vsnprintf(fullHostname.data, 256, "%V.%V.%s", honeyPotAccessKey, reversedIp, blocklistHost);
+    fullHostname.len = ngx_vslprintf(fullHostname.data, 256, "%V.%V.%s", honeyPotAccessKey, reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
