@@ -94,45 +94,46 @@ ngx_module_t ngx_http_blacklist_lookup_module = {
     NGX_MODULE_V1_PADDING
 };
 
-static int explode(ngx_str_t **arr_ptr, ngx_str_t *str, u_char delimiter) {
-    ngx_str_t *src = str;
-    ngx_str_t *arr;
+static int explode(ngx_str_t ***arr_ptr, ngx_str_t *str, u_char delimiter)
+{
+    u_char *src = str->data, *end, *dst;
+    ngx_str_t **arr;
     int size = 1, i;
-    char *end;
 
     // Count the number of delimiters to determine the size of the array
-    while ((end = ngx_strchr(src->data, delimiter)) != NULL) {
+    while ((end = ngx_strchr(src, delimiter)) != NULL) {
         ++size;
-        src->data = end + 1; // Update src to point to the next character after the delimiter
-        src->len = src->len - (end - src->data); // Update the length of src
+        src = end + 1;
     }
 
-    // Allocate memory for the array of ngx_str_t structures
-    arr = ngx_palloc(ngx_cycle->pool, size * sizeof(ngx_str_t));
+    // Allocate memory for the array of ngx_str_t pointers and the concatenated strings
+    arr = ngx_alloc(size * sizeof(ngx_str_t *) + (str->len + 1) * sizeof(u_char), ngx_cycle->log);
     if (arr == NULL) {
-        return -1; // Handle memory allocation failure
+        return -1; // Memory allocation failed
     }
 
-    // Reset src to the beginning of the string
-    src = str;
+    // Set the source pointer back to the beginning of the string
+    src = str->data;
+    // Calculate the starting point for the concatenated strings
+    dst = (u_char *) arr + size * sizeof(ngx_str_t *);
 
-    // Fill the array with the split strings
+    // Loop through the string and split it into parts
     for (i = 0; i < size; ++i) {
-        if ((end = ngx_strchr(src->data, delimiter)) != NULL) {
-            arr[i].data = src->data;
-            arr[i].len = end - src->data;
-            src->data = end + 1;
-            src->len = src->len - (end - src->data);
-        } else {
-            // Last segment
-            arr[i].data = src->data;
-            arr[i].len = src->len;
+        if ((end = ngx_strchr(src, delimiter)) == NULL) {
+            end = src + (str->len - (src - str->data)); // If no delimiter found, point to the end of the string
         }
+        arr[i] = (ngx_str_t *) dst; // Set the current array element to the current position in the concatenated strings
+        arr[i]->len = end - src; // Set the length of the current substring
+        arr[i]->data = dst; // Set the data pointer of the current substring
+        ngx_memcpy(dst, src, end - src); // Copy the substring to the concatenated strings
+        dst += end - src; // Move the destination pointer to the next position
+        *dst++ = '\0'; // Null-terminate the substring
+        src = end + 1; // Move the source pointer to the next substring
     }
 
-    *arr_ptr = arr;
+    *arr_ptr = arr; // Set the output array pointer
 
-    return size;
+    return size; // Return the number of elements in the array
 }
 
 static int reverseIpv4(ngx_str_t *ip, ngx_str_t *reversedIp) {
