@@ -357,6 +357,8 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     ngx_http_blacklist_lookup_value_node_t *found, *new_node;
     uint32_t hash;
 
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Starting ngx_http_blacklist_lookup_handler");
+
     alcf = ngx_http_get_module_loc_conf(r, ngx_http_blacklist_lookup_module);
 
     if (!alcf->enable) {
@@ -379,6 +381,7 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     switch (r->connection->sockaddr->sa_family) {
         case AF_INET:
             inet_ntop(AF_INET, &(((struct sockaddr_in *) (r->connection->sockaddr))->sin_addr.s_addr), (char *)ip_as_char.data, ip_as_char.len);
+            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "IP address family is AF_INET");
             break;
         case AF_INET6:
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "IPv6 is not supported in blacklist_lookup");
@@ -390,6 +393,7 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
 
     ngx_str_t ip_as_string = r->connection->addr_text;
     hash = ngx_crc32_long(ip_as_string.data, ip_as_string.len);
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Calculated hash for IP %V", &ip_as_string);
 
     shpool = (ngx_slab_pool_t *) ngx_http_blacklist_lookup_shm_zone->shm.addr;
     if (shpool == NULL) {
@@ -404,12 +408,15 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     int expired = 0;
     int bad = 0;
     if (found) {
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Found IP %V in cache", &ip_as_string);
         if (ngx_time() > found->expire) {
             expired = 1;
+            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "IP %V is expired", &ip_as_string);
         }
 
         if (found->result >= alcf->hits) {
             bad = 1;
+            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "IP %V is bad", &ip_as_string);
         }
 
         if (expired == 1) {
@@ -417,6 +424,7 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
             ngx_rbtree_delete(ngx_http_blacklist_lookup_rbtree, &found->sn.node);
             ngx_slab_free_locked(shpool, found);
             ngx_shmtx_unlock(&shpool->mutex);
+            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Deleted expired IP %V from cache", &ip_as_string);
         }
 
         if (bad == 1) {
@@ -440,6 +448,7 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to reverse IP address");
         return NGX_ERROR;
     }
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Reversed IP address: %V", &reversedIp);
 
     int total = 0;
     if (alcf->uceprotect_net) {
@@ -480,6 +489,7 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     ngx_rbtree_insert(ngx_http_blacklist_lookup_rbtree, &new_node->sn.node);
 
     ngx_shmtx_unlock(&shpool->mutex);
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Inserted IP %V into cache with result %d", &ip_as_string, total);
 
     if (total > 0) {
         ngx_str_t lang = alcf->lang;
@@ -515,7 +525,6 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
 
     return NGX_OK;
 }
-
 static void *ngx_http_blacklist_lookup_create_loc_conf(ngx_conf_t *cf) {
     ngx_http_blacklist_lookup_loc_conf_t *conf;
 
