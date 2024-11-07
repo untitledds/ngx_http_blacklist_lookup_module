@@ -201,6 +201,7 @@ static int uceprotect_net(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *rever
         return 0; // или другое действие в случае ошибки
     }
 
+    // Исправленная строка
     fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
@@ -231,6 +232,7 @@ static int blocklist_de(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *reverse
         return 0; // или другое действие в случае ошибки
     }
 
+    // Исправленная строка
     fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
@@ -266,6 +268,7 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
         return 0; // или другое действие в случае ошибки
     }
 
+    // Исправленная строка
     fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%V.%s", honeyPotAccessKey, reversedIp, blocklistHost);
 
     ngx_str_t resolvedResultIp;
