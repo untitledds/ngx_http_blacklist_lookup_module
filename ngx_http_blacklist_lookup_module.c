@@ -284,6 +284,10 @@ static ngx_int_t ngx_http_blacklist_lookup_init_shm_zone(ngx_shm_zone_t *shm_zon
     ngx_rbtree_node_t *sentinel;
 
     shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
+    if (shpool == NULL) {
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Shared memory address is NULL in ngx_http_blacklist_lookup_init_shm_zone");
+        return NGX_ERROR;
+    }
 
     if (data) {
         shm_zone->data = data;
