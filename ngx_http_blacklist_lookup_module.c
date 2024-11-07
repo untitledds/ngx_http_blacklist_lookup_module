@@ -101,7 +101,7 @@ static int explode(ngx_str_t ***arr_ptr, ngx_str_t *str, u_char delimiter)
     int size = 1, i;
 
     // Count the number of delimiters to determine the size of the array
-    while ((end = ngx_strchr(src, delimiter)) != NULL) {
+    while ((end = (u_char *)ngx_strchr(src, delimiter)) != NULL) {
         ++size;
         src = end + 1;
     }
@@ -119,7 +119,7 @@ static int explode(ngx_str_t ***arr_ptr, ngx_str_t *str, u_char delimiter)
 
     // Loop through the string and split it into parts
     for (i = 0; i < size; ++i) {
-        if ((end = ngx_strchr(src, delimiter)) == NULL) {
+        if ((end = (u_char *)ngx_strchr(src, delimiter)) == NULL) {
             end = src + (str->len - (src - str->data)); // If no delimiter found, point to the end of the string
         }
         arr[i] = (ngx_str_t *) dst; // Set the current array element to the current position in the concatenated strings
