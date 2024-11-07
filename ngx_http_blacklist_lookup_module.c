@@ -174,9 +174,7 @@ static int lookupAddr(ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
     // Преобразуем строку IP-адреса в in_addr_t
     addr = ngx_inet_addr(ip_as_string->data, ip_as_string->len);
     if (addr == INADDR_NONE) {
-        if (ngx_http_blacklist_lookup_verbose) {
-            ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Invalid IP address: %V", ip_as_string);
-        }
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Invalid IP address: %V", ip_as_string);
         return 0;
     }
 
@@ -184,9 +182,7 @@ static int lookupAddr(ngx_str_t *ip_as_string, ngx_str_t *ipstr) {
     inaddr.s_addr = addr;
     size_t result_len = ngx_inet_ntop(AF_INET, &inaddr, ipstr->data, buffer_size);
     if (result_len == NGX_ERROR) {
-        if (ngx_http_blacklist_lookup_verbose) {
-            ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Failed to convert IP address to string: %V", ip_as_string);
-        }
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "Failed to convert IP address to string: %V", ip_as_string);
         return 0;
     }
 
