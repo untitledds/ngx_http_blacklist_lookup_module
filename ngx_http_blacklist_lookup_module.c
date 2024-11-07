@@ -359,6 +359,30 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
 
     ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Starting ngx_http_blacklist_lookup_handler");
 
+    // Записываем IP-адрес клиента в лог
+    ngx_str_t client_ip;
+    client_ip.data = ngx_palloc(r->pool, INET6_ADDRSTRLEN);
+    client_ip.len = INET6_ADDRSTRLEN;
+
+    if (r->connection == NULL || r->connection->sockaddr == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Connection or sockaddr is NULL");
+        return NGX_ERROR;
+    }
+
+    switch (r->connection->sockaddr->sa_family) {
+        case AF_INET:
+            inet_ntop(AF_INET, &(((struct sockaddr_in *) (r->connection->sockaddr))->sin_addr.s_addr), (char *)client_ip.data, client_ip.len);
+            break;
+        case AF_INET6:
+            inet_ntop(AF_INET6, &(((struct sockaddr_in6 *) (r->connection->sockaddr))->sin6_addr), (char *)client_ip.data, client_ip.len);
+            break;
+        default:
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Unsupported address family");
+            return NGX_ERROR;
+    }
+
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Client IP: %V", &client_ip);
+
     alcf = ngx_http_get_module_loc_conf(r, ngx_http_blacklist_lookup_module);
 
     if (!alcf->enable) {
@@ -373,23 +397,8 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
     ip_as_char.data = ngx_palloc(r->pool, INET6_ADDRSTRLEN);
     ip_as_char.len = INET6_ADDRSTRLEN;
 
-    if (r->connection == NULL || r->connection->sockaddr == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Invalid connection or sockaddr");
-        return NGX_ERROR;
-    }
-
-    switch (r->connection->sockaddr->sa_family) {
-        case AF_INET:
-            inet_ntop(AF_INET, &(((struct sockaddr_in *) (r->connection->sockaddr))->sin_addr.s_addr), (char *)ip_as_char.data, ip_as_char.len);
-            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "IP address family is AF_INET");
-            break;
-        case AF_INET6:
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "IPv6 is not supported in blacklist_lookup");
-            return NGX_OK;
-        default:
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Unsupported address family");
-            return NGX_ERROR;
-    }
+    ngx_memcpy(ip_as_char.data, client_ip.data, client_ip.len);
+    ip_as_char.len = client_ip.len;
 
     ngx_str_t ip_as_string = r->connection->addr_text;
     hash = ngx_crc32_long(ip_as_string.data, ip_as_string.len);
@@ -523,8 +532,10 @@ static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r) {
         return ngx_http_output_filter(r, &out);
     }
 
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Ending ngx_http_blacklist_lookup_handler");
     return NGX_OK;
 }
+
 static void *ngx_http_blacklist_lookup_create_loc_conf(ngx_conf_t *cf) {
     ngx_http_blacklist_lookup_loc_conf_t *conf;
 
