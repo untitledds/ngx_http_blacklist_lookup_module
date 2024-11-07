@@ -60,6 +60,8 @@ static void *ngx_http_blacklist_lookup_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_blacklist_lookup_init_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t ngx_http_blacklist_lookup_handler(ngx_http_request_t *r);
 
+static int ngx_http_blacklist_lookup_verbose; /* verbose flag */
+
 static ngx_uint_t ngx_http_blacklist_lookup_shm_size;
 static ngx_shm_zone_t * ngx_http_blacklist_lookup_shm_zone;
 static ngx_rbtree_t * ngx_http_blacklist_lookup_rbtree;
