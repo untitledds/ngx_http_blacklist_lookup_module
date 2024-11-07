@@ -234,7 +234,8 @@ static int blocklist_de(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *reverse
     }
 
     // Исправленная строка
-    fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
+    u_char* temp = ngx_snprintf(fullHostname.data, 256, "%V.%s", reversedIp, blocklistHost);
+    fullHostname.len = temp - fullHostname.data;
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
@@ -270,7 +271,8 @@ static int projecthoneypot_org(ngx_http_request_t *r, ngx_str_t *ip, ngx_str_t *
     }
 
     // Исправленная строка
-    fullHostname.len = ngx_snprintf(fullHostname.data, 256, "%V.%V.%s", honeyPotAccessKey, reversedIp, blocklistHost);
+    u_char* temp = ngx_snprintf(fullHostname.data, 256, "%V.%V.%s", honeyPotAccessKey, reversedIp, blocklistHost);
+    fullHostname.len = temp - fullHostname.data;
 
     ngx_str_t resolvedResultIp;
     resolvedResultIp.data = ngx_pcalloc(r->pool, INET6_ADDRSTRLEN);
